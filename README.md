@@ -54,4 +54,4 @@ SkillOGeo is designed as a Progressive Web App (PWA) friendly interface. It work
 
 ---
 
-**Built for the Makeathon 2026**
+**Built for the DEVSOC2026**
