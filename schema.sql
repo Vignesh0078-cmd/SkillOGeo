@@ -28,10 +28,21 @@ CREATE TABLE locations (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 4. MESSAGES TABLE
+-- Stores direct messages between users.
+CREATE TABLE messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  sender_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  receiver_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE availability ENABLE ROW LEVEL SECURITY;
 ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 
 -- POLICIES
 
@@ -64,6 +75,14 @@ CREATE POLICY "Users can update own location" ON locations
 
 CREATE POLICY "Users can insert own location" ON locations
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Messages: Users can insert their own, read their own (sent or received)
+CREATE POLICY "Users can send messages" ON messages
+  FOR INSERT WITH CHECK (auth.uid() = sender_id);
+
+CREATE POLICY "Users can read their own messages" ON messages
+  FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+
 
 -- FUNCTION: Trigger to create profile/availability/location on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -142,3 +161,54 @@ BEGIN
   ORDER BY distance_km ASC;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 1. Create messages table if it doesn't exist
+CREATE TABLE IF NOT EXISTS messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  sender_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  receiver_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 2. Add RLS to messages
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+-- 3. Add policies (drop first to avoid "policy already exists" error)
+DROP POLICY IF EXISTS "Users can send messages" ON messages;
+CREATE POLICY "Users can send messages" ON messages
+  FOR INSERT WITH CHECK (auth.uid() = sender_id);
+
+DROP POLICY IF EXISTS "Users can read their own messages" ON messages;
+CREATE POLICY "Users can read their own messages" ON messages
+  FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+
+-- 4. Add to Realtime (safely)
+-- If the publication exists, just add the table. If not, create it.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    CREATE PUBLICATION supabase_realtime FOR TABLE availability, locations, messages;
+  ELSE
+    ALTER PUBLICATION supabase_realtime ADD TABLE messages;
+  END IF;
+EXCEPTION
+  WHEN duplicate_object THEN NULL; -- Handle race conditions or existing state
+END $$;
+
+-- 5. SCHEDULED CLEANUP TASK (Pseudo-code / Manual Trigger)
+-- In Supabase, you would typically use pg_cron or an Edge Function to run this periodically.
+-- This query sets users to offline if they haven't been active in 4 hours.
+
+CREATE OR REPLACE FUNCTION check_inactive_users()
+RETURNS void AS $$
+BEGIN
+  UPDATE availability
+  SET is_available = false
+  WHERE is_available = true 
+    AND last_active_at < NOW() - INTERVAL '4 hours';
+END;
+$$ LANGUAGE plpgsql;
+
+-- If you have pg_cron enabled in Supabase (Extensions -> pg_cron):
+-- SELECT cron.schedule('0 * * * *', $$SELECT check_inactive_users()$$);

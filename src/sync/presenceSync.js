@@ -30,7 +30,17 @@ export const presenceSync = {
         presenceSync._listeners[event].push(callback);
     },
 
+    _lastEmit: {},
     emit: (event, data) => {
+        // Throttle rapid updates for high-frequency events
+        if (event === 'network-update') {
+            const now = Date.now();
+            if (presenceSync._lastEmit[event] && (now - presenceSync._lastEmit[event] < 800)) {
+                return;
+            }
+            presenceSync._lastEmit[event] = now;
+        }
+
         console.log(`Sync Bridge: Relaying event [${event}]`);
         if (presenceSync._listeners[event]) {
             presenceSync._listeners[event].forEach(cb => cb(data));
@@ -47,11 +57,18 @@ export const presenceSync = {
                 async (position) => {
                     const { latitude, longitude } = position.coords;
                     await dataService.setUserLocation(latitude, longitude);
+                    // Heartbeat: keep user "online" as long as they are moving/active
+                    await dataService.sendHeartbeat();
                     presenceSync.emit('location-updated', { latitude, longitude });
                 },
                 (error) => console.warn("WatchPosition error:", error),
                 { enableHighAccuracy: true, maximumAge: 10000 }
             );
+
+            // Backup Heartbeat (useful if location doesn't change)
+            presenceSync._heartbeatInterval = setInterval(() => {
+                dataService.sendHeartbeat();
+            }, 60000); // Pulse every 1 min
         }
     },
 
@@ -60,6 +77,10 @@ export const presenceSync = {
             navigator.geolocation.clearWatch(presenceSync._watchId);
             presenceSync._watchId = null;
             console.log("Sync Bridge: Location tracking stopped.");
+        }
+        if (presenceSync._heartbeatInterval) {
+            clearInterval(presenceSync._heartbeatInterval);
+            presenceSync._heartbeatInterval = null;
         }
     },
 
@@ -85,7 +106,12 @@ export const presenceSync = {
             }, () => {
                 presenceSync.emit('network-update');
             })
-            .subscribe();
+            .subscribe((status) => {
+                console.log(`Sync Bridge: Subscription Status [${status}]`);
+                if (status === 'SUBSCRIBED') {
+                    console.log("Sync Bridge: ✅ Connected to Realtime for Availability & Locations");
+                }
+            });
     },
 
     stopLiveFeed: () => {

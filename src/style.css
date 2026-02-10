@@ -45,6 +45,15 @@ body {
   border-radius: var(--radius);
 }
 
+@media (max-width: 768px) {
+  .glass {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(26, 30, 38, 0.95) !important;
+    /* Semi-opaque fallback */
+  }
+}
+
 .btn-primary {
   background: var(--primary);
   color: white;
@@ -65,7 +74,7 @@ body {
 .auth-container {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 10000;
   display: flex;
   background: url('https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=2000') no-repeat center center;
   background-size: cover;
@@ -75,6 +84,7 @@ body {
   position: absolute;
   inset: 0;
   background: radial-gradient(circle at center, transparent, rgba(0, 0, 0, 0.4));
+  pointer-events: none;
 }
 
 .auth-sidebar {
@@ -85,6 +95,7 @@ body {
   justify-content: center;
   position: relative;
   z-index: 1;
+  pointer-events: none;
 }
 
 .auth-content {
@@ -96,6 +107,14 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  z-index: 2;
+  position: relative;
+}
+
+.auth-content input {
+  position: relative;
+  z-index: 10001;
+  pointer-events: auto !important;
 }
 
 .logo {
@@ -170,7 +189,11 @@ input:checked+.slider:before {
   width: 100%;
   height: 100%;
   z-index: 10;
+  background: #f8f9fa;
+  /* Light background for the map area */
 }
+
+/* REMOVED: Inverted/Dark filter that was hiding the natural map colors */
 
 .custom-marker {
   background: none;
@@ -178,44 +201,56 @@ input:checked+.slider:before {
 }
 
 .marker-inner {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  border-radius: 50% 50% 50% 0;
   background: var(--primary);
-  border: 3px solid white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 2px solid white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 18px;
-  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  font-size: 14px;
+  transform: rotate(-45deg);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  will-change: transform;
+}
+
+.marker-inner>* {
+  transform: rotate(45deg);
+  /* Correct the rotation of content */
 }
 
 .marker-inner:hover {
-  transform: scale(1.1);
+  transform: rotate(-45deg) scale(1.15);
+  z-index: 1000;
 }
 
 .marker-inner.you {
-  background: var(--accent);
-  width: 48px;
-  height: 48px;
-  font-size: 22px;
+  background: #4285F4;
+  /* Google Blue */
+  width: 40px;
+  height: 40px;
 }
 
 .marker-label {
   position: absolute;
-  bottom: -25px;
+  top: 100%;
   left: 50%;
   transform: translateX(-50%);
   background: white;
-  color: black;
-  padding: 2px 8px;
-  border-radius: 10px;
+  color: #3c4043;
+  /* Google Maps Text Color */
+  padding: 3px 10px;
+  border-radius: 12px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  margin-top: 8px;
+  border: 1px solid #e8eaed;
+  will-change: transform;
 }
 
 .pulse {
@@ -223,10 +258,13 @@ input:checked+.slider:before {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: var(--accent);
-  opacity: 0.6;
-  animation: pulse 2s infinite;
+  background: var(--primary);
+  opacity: 0.3;
+  animation: pulse 3s infinite;
+  /* Slower animation for performance */
   z-index: -1;
+  top: 0;
+  left: 0;
 }
 
 @keyframes pulse {
@@ -253,5 +291,301 @@ input:checked+.slider:before {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* RESPONSIVE DESIGN */
+
+/* Auth Responsive */
+@media (max-width: 768px) {
+  .auth-container {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .auth-sidebar {
+    width: 100%;
+    padding: 40px 20px;
+    height: auto;
+    text-align: center;
+    align-items: center;
+  }
+
+  .auth-sidebar h1 {
+    font-size: 36px !important;
+  }
+
+  .auth-content {
+    width: 100%;
+    height: auto;
+    padding: 40px 20px;
+    border-radius: 24px 24px 0 0;
+    margin-top: -20px;
+  }
+}
+
+/* Main App Responsive */
+@media (max-width: 768px) {
+
+  /* Root app container */
+  #app {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* Main layout becomes vertical stack */
+  .main-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    width: 100% !important;
+    overflow: hidden;
+  }
+
+  /* Sidebar becomes bottom panel (NOT floating) */
+  .sidebar {
+    position: relative !important;
+    width: 100% !important;
+    height: 60vh !important;
+    /* Increased height for visibility of content */
+    max-height: 70vh !important;
+    min-height: 250px !important;
+    border-radius: 16px 16px 0 0 !important;
+    z-index: 100 !important;
+    flex-shrink: 0 !important;
+    order: 2 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    /* Container doesn't scroll, children do */
+    transform: none !important;
+    transition: none !important;
+    background: #1e2229 !important;
+    /* Opaque background for performance */
+    backdrop-filter: none !important;
+    /* Disabled for mobile performance */
+  }
+
+  /* Map takes remaining space */
+  main {
+    position: relative !important;
+    flex: 1 !important;
+    width: 100% !important;
+    height: auto !important;
+    order: 1 !important;
+    overflow: hidden !important;
+  }
+
+  #map {
+    width: 100% !important;
+    height: 100% !important;
+    position: relative !important;
+  }
+
+  /* Sidebar Header (Static Content Area) */
+  .sidebar-header {
+    flex-shrink: 0 !important;
+    /* Don't shrink */
+    padding: 20px 24px 10px 24px !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Remove the drag handle */
+  .sidebar-header::before {
+    display: none;
+  }
+
+  /* Remove old selector targeting first child if it exists */
+  .sidebar>div:first-child {
+    height: auto !important;
+    /* Reset */
+    overflow: visible !important;
+  }
+
+  /* Scrollable List Container */
+  #nearby-scroll-container {
+    flex: 1 !important;
+    /* Use all remaining space */
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 0 24px 24px 24px !important;
+  }
+
+  #nearby-list {
+    /* No overflow here, parent handles it */
+    padding-bottom: 20px;
+  }
+
+  #current-user-status {
+    max-width: 150px !important;
+  }
+
+  /* Show floating edit button on mobile */
+  #btn-edit-profile-mobile {
+    display: block !important;
+    bottom: calc(50vh + 20px) !important;
+    /* Position above sidebar */
+    z-index: 101 !important;
+  }
+
+  /* Hide desktop edit button on mobile */
+  #btn-edit-profile {
+    display: none !important;
+  }
+
+  /* Sidebar footer (Fixed at bottom) */
+  #sidebar-footer {
+    flex-shrink: 0 !important;
+    position: relative !important;
+    /* Normal flow in flex container */
+    bottom: auto !important;
+    background: var(--bg-color);
+    z-index: 10;
+    border-top: 1px solid var(--border-color);
+  }
+
+  /* Modal above everything */
+  #modal-container {
+    z-index: 10000 !important;
+  }
+
+  /* Auth responsive */
+  .auth-container {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .auth-sidebar {
+    width: 100%;
+    padding: 40px 20px;
+    height: auto;
+    text-align: center;
+    align-items: center;
+  }
+
+  .auth-sidebar h1 {
+    font-size: 36px !important;
+  }
+
+  .auth-content {
+    width: 100%;
+    height: auto;
+    padding: 40px 20px;
+    border-radius: 24px 24px 0 0;
+    margin-top: -20px;
+  }
+}
+
+/* Modal Responsive - Bottom Sheet Style */
+@media (max-width: 480px) {
+  #modal-container {
+    padding: 0;
+    align-items: flex-end !important;
+    /* Bottom align for sheet effect */
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  /* Target direct children glass containers */
+  #modal-container>.glass {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 24px 24px 0 0 !important;
+    /* Top rounded corners */
+    max-height: 85vh !important;
+    border-bottom: none;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Profile Card Specific Adjustments */
+  .profile-card {
+    padding-bottom: 40px;
+    /* Safe area for bottom */
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  #modal-container input,
+  #modal-container textarea {
+    font-size: 16px !important;
+    /* Prevent zoom on iOS */
+  }
+
+  /* Mobile: Position AI Button above the sidebar (which is 60vh tall) */
+  #btn-ai-chat {
+    bottom: calc(60vh + 20px) !important;
+    right: 20px !important;
+    left: auto !important;
+  }
+
+  /* Make sure Edit button is also well positioned (stacked or side-by-side) */
+  #btn-edit-profile-mobile {
+    bottom: calc(60vh + 90px) !important;
+    /* Stacked above AI button */
+  }
+}
+
+/* Typing Indicator Animation */
+.dot-flashing {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 5px;
+  background-color: #9880ff;
+  color: #9880ff;
+  animation: dot-flashing 1s infinite linear alternate;
+  animation-delay: 0.5s;
+}
+
+.dot-flashing::before,
+.dot-flashing::after {
+  content: '';
+  display: inline-block;
+  position: absolute;
+  top: 0;
+}
+
+.dot-flashing::before {
+  left: -10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 5px;
+  background-color: #9880ff;
+  color: #9880ff;
+  animation: dot-flashing 1s infinite alternate;
+  animation-delay: 0s;
+}
+
+.dot-flashing::after {
+  left: 10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 5px;
+  background-color: #9880ff;
+  color: #9880ff;
+  animation: dot-flashing 1s infinite alternate;
+  animation-delay: 1s;
+}
+
+@keyframes dot-flashing {
+  0% {
+    background-color: #9880ff;
+  }
+
+  50%,
+  100% {
+    background-color: rgba(152, 128, 255, 0.2);
   }
 }
