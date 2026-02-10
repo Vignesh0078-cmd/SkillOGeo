@@ -35,6 +35,8 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_CLOUDINARY_CLOUD_NAME=your_cloud_name
 VITE_CLOUDINARY_API_KEY=your_api_key
 VITE_CLOUDINARY_API_SECRET=your_api_secret
+BACKBOARD_API_KEY=your_backboard_ai_key
+BACKBOARD_ASSISTANT_ID=your_assistant_id
 ```
 
 ### Run Locally
